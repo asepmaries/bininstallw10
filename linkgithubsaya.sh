@@ -4,14 +4,14 @@ set -Eeuo pipefail
 # Install Windows 10 Pro dari VPS Ubuntu 22.04 — satu perintah, tanpa upload file.
 #
 # Jalankan di VPS (repo GitHub harus PUBLIC):
-#   curl -fsSL https://raw.githubusercontent.com/asepmaries/bininstalwin10/main/linkgithubsaya.sh | sudo bash
+#   curl -fsSL https://raw.githubusercontent.com/asepmaries/bininstallw10/main/linkgithubsaya.sh | sudo bash
 #
 # Atau:
-#   curl -fsSL https://raw.githubusercontent.com/asepmaries/bininstalwin10/main/linkgithubsaya.sh -o linkgithubsaya.sh
+#   curl -fsSL https://raw.githubusercontent.com/asepmaries/bininstallw10/main/linkgithubsaya.sh -o linkgithubsaya.sh
 #   sudo bash linkgithubsaya.sh
 
 GITHUB_OWNER="${GITHUB_OWNER:-asepmaries}"
-GITHUB_REPO="${GITHUB_REPO:-bininstalwin10}"
+GITHUB_REPO="${GITHUB_REPO:-bininstallw10}"
 GITHUB_BRANCH="${GITHUB_BRANCH:-main}"
 CONFHOME="https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_BRANCH}"
 REINSTALL_URL="${CONFHOME}/reinstall.sh"
@@ -23,8 +23,8 @@ ADMIN_PASSWORD="${ADMIN_PASSWORD:-zona10aman}"
 RDP_PORT="${RDP_PORT:-7777}"
 WORK_DIR="${WORK_DIR:-/tmp/win10-reinstall}"
 
-# Fallback ISO (uji coba teman — dipakai jika auto-find Microsoft gagal)
-FALLBACK_ISO_URL="${FALLBACK_ISO_URL:-https://ts.buzzheavier.com/d/fuxscqu93mnn?v=IQlhLcTOTOjFJX6xQW2Ic3VlPNqif5bhzB0dKJl1BOkw1YmylCQsCnHz0fHDmBOvctVGHeKf9hYJvd7L0iWQSX_TZCNJn1xQy8F6Nhi18fAsIlQTWrhmg3oso_AoOV39fnrdi37667tr1HD9UTl45fy5SzQj_pXTYOmzqB0KS-3-b3fUDQcDMu4juzFdB0CUz65D_0WwpnWfFo9e6O9uJhGCAkAZovmZFA3sGCuGCgc4Y-XK_LeUuO0yC6NrBKBFdVvVi51xNnRslxTxpaB9zkUvqAgb-TkrN3kbmTDoPlepsHASDSQnxKvsysmLyxf-U-xGfjskd-2l6ARnjMEEng_09eaK7mWymG-imXJOkyc8Im8eST4P}"
+# Windows 10 Consumer 22H2 (Feb 2023) — direct link archive.org, bisa di-wget dari VPS
+WINDOWS_ISO_URL="${WINDOWS_ISO_URL:-https://ia801506.us.archive.org/10/items/en-us_windows_10_consumer_editions_version_22h2_updated_feb_2023_x64_dvd_c29e4bb3/en-us_windows_10_consumer_editions_version_22h2_updated_feb_2023_x64_dvd_c29e4bb3.iso}"
 
 log() {
   printf '\n==> %s\n' "$*"
@@ -82,11 +82,6 @@ warn() {
   printf '    [WARN] %s\n' "$*" >&2
 }
 
-probe_microsoft_win10_catalog() {
-  # Cek apakah katalog Microsoft (massgrave) terjangkau dari VPS ini.
-  curl -fsSL --connect-timeout 15 --max-time 45 "https://massgrave.dev/" >/dev/null 2>&1
-}
-
 install_packages() {
   log "Installing required tools"
   export DEBIAN_FRONTEND=noninteractive
@@ -104,28 +99,14 @@ show_info() {
 }
 
 run_reinstall() {
-  local use_iso=$1
-  local -a args
-
-  args=(
-    windows
-    --image-name "$IMAGE_NAME"
-    --lang "$LANGUAGE"
-    --username "$ADMIN_USERNAME"
-    --password "$ADMIN_PASSWORD"
-    --rdp-port "$RDP_PORT"
-  )
-
-  if [ -n "$use_iso" ]; then
-    args+=(--iso "$use_iso")
-    log "Install dengan ISO: Buzzheavier (fallback)"
-    bash ./reinstall.sh "${args[@]}"
-    return $?
-  fi
-
-  log "Install dengan ISO: auto-find Microsoft (Windows 10 Pro)"
-  log "Jika gagal, otomatis isi direct link Buzzheavier"
-  printf '%s\n' "$FALLBACK_ISO_URL" | bash ./reinstall.sh "${args[@]}"
+  log "Install dengan ISO: archive.org (Windows 10 Consumer 22H2, edisi Pro tersedia)"
+  bash ./reinstall.sh windows \
+    --image-name "$IMAGE_NAME" \
+    --lang "$LANGUAGE" \
+    --username "$ADMIN_USERNAME" \
+    --password "$ADMIN_PASSWORD" \
+    --rdp-port "$RDP_PORT" \
+    --iso "$WINDOWS_ISO_URL"
 }
 
 main() {
@@ -134,18 +115,7 @@ main() {
   download_reinstall
 
   log "Menyiapkan Windows reinstall boot entry"
-
-  if probe_microsoft_win10_catalog; then
-    if run_reinstall ""; then
-      :
-    else
-      warn "Auto-find Microsoft gagal, retry dengan ISO Buzzheavier"
-      run_reinstall "$FALLBACK_ISO_URL"
-    fi
-  else
-    warn "Katalog Microsoft tidak terjangkau dari VPS ini"
-    run_reinstall "$FALLBACK_ISO_URL"
-  fi
+  run_reinstall
 
   log "Rebooting. SSH Ubuntu akan putus."
   printf 'Tunggu 10-20 menit, lalu RDP:\n'
