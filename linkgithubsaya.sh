@@ -23,8 +23,8 @@ ADMIN_PASSWORD="${ADMIN_PASSWORD:-zona10aman}"
 RDP_PORT="${RDP_PORT:-7777}"
 WORK_DIR="${WORK_DIR:-/tmp/win10-reinstall}"
 
-# Windows 10 Consumer 22H2 (Feb 2023) — direct link archive.org, bisa di-wget dari VPS
-WINDOWS_ISO_URL="${WINDOWS_ISO_URL:-https://ia801506.us.archive.org/10/items/en-us_windows_10_consumer_editions_version_22h2_updated_feb_2023_x64_dvd_c29e4bb3/en-us_windows_10_consumer_editions_version_22h2_updated_feb_2023_x64_dvd_c29e4bb3.iso}"
+# Windows 10 22H2 Oct 2025 — Cloudflare R2 public URL
+WINDOWS_ISO_URL="${WINDOWS_ISO_URL:-https://pub-453249fbfe80408a8bb5bf8cce54f391.r2.dev/windows_10_v_22h2_updated_oct_2025_x64.iso}"
 
 log() {
   printf '\n==> %s\n' "$*"
@@ -99,7 +99,7 @@ show_info() {
 }
 
 run_reinstall() {
-  log "Install dengan ISO: archive.org (Windows 10 Consumer 22H2, edisi Pro tersedia)"
+  log "Install dengan ISO: Cloudflare R2 (Windows 10 22H2 Oct 2025)"
   bash ./reinstall.sh windows \
     --image-name "$IMAGE_NAME" \
     --lang "$LANGUAGE" \
