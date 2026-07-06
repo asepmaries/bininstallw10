@@ -23,8 +23,10 @@ ADMIN_PASSWORD="${ADMIN_PASSWORD:-zona10aman}"
 RDP_PORT="${RDP_PORT:-7777}"
 WORK_DIR="${WORK_DIR:-/tmp/win10-reinstall}"
 
-# Windows 10 22H2 Oct 2025 — Cloudflare R2 public URL
-WINDOWS_ISO_URL="${WINDOWS_ISO_URL:-https://pub-453249fbfe80408a8bb5bf8cce54f391.r2.dev/windows_10_v_22h2_updated_oct_2025_x64.iso}"
+# ISO utama: Cloudflare R2 | cadangan: archive.org
+WINDOWS_ISO_URL_PRIMARY="${WINDOWS_ISO_URL_PRIMARY:-https://pub-453249fbfe80408a8bb5bf8cce54f391.r2.dev/windows_10_v_22h2_updated_oct_2025_x64.iso}"
+WINDOWS_ISO_URL_FALLBACK="${WINDOWS_ISO_URL_FALLBACK:-https://ia801506.us.archive.org/10/items/en-us_windows_10_consumer_editions_version_22h2_updated_feb_2023_x64_dvd_c29e4bb3/en-us_windows_10_consumer_editions_version_22h2_updated_feb_2023_x64_dvd_c29e4bb3.iso}"
+# Override manual (skip auto-pick): export WINDOWS_ISO_URL=...
 
 log() {
   printf '\n==> %s\n' "$*"
@@ -82,6 +84,35 @@ warn() {
   printf '    [WARN] %s\n' "$*" >&2
 }
 
+iso_url_reachable() {
+  local url=$1
+  curl -fsSL --connect-timeout 15 --max-time 60 -r 0-1048575 "$url" -o /dev/null 2>/dev/null
+}
+
+pick_windows_iso_url() {
+  if [ -n "${WINDOWS_ISO_URL:-}" ]; then
+    printf '%s\n' "$WINDOWS_ISO_URL"
+    return 0
+  fi
+
+  log "Cek ketersediaan ISO utama (Cloudflare R2)"
+  if iso_url_reachable "$WINDOWS_ISO_URL_PRIMARY"; then
+    ok_dl "$WINDOWS_ISO_URL_PRIMARY"
+    printf '%s\n' "$WINDOWS_ISO_URL_PRIMARY"
+    return 0
+  fi
+
+  warn "ISO R2 tidak terjangkau, coba cadangan archive.org"
+  log "Cek ketersediaan ISO cadangan (archive.org)"
+  if iso_url_reachable "$WINDOWS_ISO_URL_FALLBACK"; then
+    ok_dl "$WINDOWS_ISO_URL_FALLBACK"
+    printf '%s\n' "$WINDOWS_ISO_URL_FALLBACK"
+    return 0
+  fi
+
+  fail "Semua URL ISO gagal (R2 dan archive.org). Cek koneksi VPS."
+}
+
 install_packages() {
   log "Installing required tools"
   export DEBIAN_FRONTEND=noninteractive
@@ -99,14 +130,19 @@ show_info() {
 }
 
 run_reinstall() {
-  log "Install dengan ISO: Cloudflare R2 (Windows 10 22H2 Oct 2025)"
+  local iso_url
+  iso_url=$(pick_windows_iso_url)
+
+  log "Install Windows dengan ISO:"
+  printf '  %s\n' "$iso_url"
+
   bash ./reinstall.sh windows \
     --image-name "$IMAGE_NAME" \
     --lang "$LANGUAGE" \
     --username "$ADMIN_USERNAME" \
     --password "$ADMIN_PASSWORD" \
     --rdp-port "$RDP_PORT" \
-    --iso "$WINDOWS_ISO_URL"
+    --iso "$iso_url"
 }
 
 main() {
