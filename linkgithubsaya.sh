@@ -29,7 +29,7 @@ WINDOWS_ISO_URL_FALLBACK="${WINDOWS_ISO_URL_FALLBACK:-https://ia801506.us.archiv
 # Override manual (skip auto-pick): export WINDOWS_ISO_URL=...
 
 log() {
-  printf '\n==> %s\n' "$*"
+  printf '\n==> %s\n' "$*" >&2
 }
 
 fail() {
@@ -77,7 +77,7 @@ download_reinstall() {
 }
 
 ok_dl() {
-  printf '    [OK] %s\n' "$*"
+  printf '    [OK] %s\n' "$*" >&2
 }
 
 warn() {
@@ -131,7 +131,8 @@ show_info() {
 
 run_reinstall() {
   local iso_url
-  iso_url=$(pick_windows_iso_url)
+  iso_url=$(pick_windows_iso_url | awk 'NF && $0 ~ /^https?:\/\// { url=$0 } END { print url }')
+  [ -n "$iso_url" ] || fail "Gagal menentukan URL ISO"
 
   log "Install Windows dengan ISO:"
   printf '  %s\n' "$iso_url"
