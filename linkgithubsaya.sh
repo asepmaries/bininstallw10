@@ -20,7 +20,7 @@ IMAGE_NAME="${IMAGE_NAME:-Windows 10 Pro}"
 LANGUAGE="${LANGUAGE:-en-us}"
 ADMIN_USERNAME="${ADMIN_USERNAME:-administrator}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-zona10aman}"
-RDP_PORT="${RDP_PORT:-7777}"
+RDP_PORT="${RDP_PORT:-3389}"
 WORK_DIR="${WORK_DIR:-/tmp/win10-reinstall}"
 
 # ISO utama: Cloudflare R2 | cadangan: archive.org
